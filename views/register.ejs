@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>User Registration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .valid-feedback {
+            display: none;
+            color: green;
+        }
+
+        .invalid-feedback {
+            display: none;
+            color: red;
+        }
+
+        input.valid {
+            border-color: green;
+        }
+
+        input.invalid {
+            border-color: red;
+        }
+
+        .duplicate-error {
+            color: red;
+            display: none;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-lg p-4">
+                    <h2 class="text-center mb-4">Register</h2>
+
+                    <form id="registerForm" method="POST" action="/users/register" novalidate>
+                        <% const old=oldInput || {}; %>
+
+                            <!-- Name -->
+                            <div class="mb-3">
+                                <label class="form-label">Name</label>
+                                <input type="text" class="form-control" placeholder="Enter name Here" name="username" required
+                                    value="<%= old.username || '' %>">
+                                <div class="valid-feedback">✅ Looks good!</div>
+                                <div class="invalid-feedback">Please enter at least 3 characters.</div>
+                                <div id="usernameDuplicate" class="duplicate-error">Username already exists!</div>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" placeholder="Enter email Here" name="email" required
+                                    value="<%= old.email || '' %>">
+                                <div class="valid-feedback">✅ Valid email!</div>
+                                <div class="invalid-feedback">Please enter a valid email address.</div>
+                                <div id="emailDuplicate" class="duplicate-error">Email already exists!</div>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <input type="password" class="form-control" placeholder="Enter password"  name="password" required>
+                                <div class="valid-feedback">✅ Password is okay!</div>
+                                <div class="invalid-feedback">Password must be at least 5 characters.</div>
+                            </div>
+
+                            <!-- Phone -->
+                            <div class="mb-3">
+                                <label class="form-label">Phone No</label>
+                                <input type="text" class="form-control" placeholder="Enter Phone number" name="phone" required
+                                    value="<%= old.phone || '' %>">
+                                <div class="valid-feedback">✅ Valid phone!</div>
+                                <div class="invalid-feedback">Please enter at least 10 digits.</div>
+                            </div>
+
+                            <!-- Profession -->
+                            <div class="mb-3">
+                                <label class="form-label">Profession</label>
+                                <input type="text" class="form-control" placeholder="Enter Profession" name="profession" required
+                                    value="<%= old.profession || '' %>">
+                                <div class="valid-feedback">✅ Looks good!</div>
+                                <div class="invalid-feedback">Please enter your profession.</div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">Register</button>
+                    </form>
+
+                    <% if (errors && errors.length) { %>
+                        <div class="alert alert-danger mt-3 text-center">
+                            <% errors.forEach(e=> { %>
+                                <div>
+                                    <%= e.msg %>
+                                </div>
+                                <% }) %>
+                        </div>
+                        <% } %>
+
+                            <p class="text-center mt-3">Already have an account? <a href="/users/login">Login</a></p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById("registerForm");
+        const inputs = form.querySelectorAll("input");
+        let users = [];
+
+        // Load existing users for duplicate check
+        async function loadUsers() {
+            try {
+                const res = await fetch("/users");
+                users = await res.json();
+            } catch (err) {
+                console.error("Error loading users:", err);
+            }
+        }
+        loadUsers();
+
+        function validateInput(input) {
+            let isValid = false;
+            const value = input.value.trim();
+
+            switch (input.name) {
+                case 'username':
+                    isValid = value.length >= 3;
+                    break;
+                case 'email':
+                    isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+                    break;
+                case 'password':
+                    isValid = value.length >= 5;
+                    break;
+                case 'phone':
+                    isValid = /^\d{10,}$/.test(value);
+                    break;
+                case 'profession':
+                    isValid = value.length > 0;
+                    break;
+            }
+
+            // Duplicate check for username/email
+            if (isValid) {
+                if (input.name === "username") {
+                    const duplicate = users.some(u => u.username === value);
+                    document.getElementById("usernameDuplicate").style.display = duplicate ? "block" : "none";
+                    isValid = !duplicate;
+                } else if (input.name === "email") {
+                    const duplicate = users.some(u => u.email === value);
+                    document.getElementById("emailDuplicate").style.display = duplicate ? "block" : "none";
+                    isValid = !duplicate;
+                }
+            }
+
+            if (isValid) {
+                input.classList.add("valid");
+                input.classList.remove("invalid");
+                input.nextElementSibling.style.display = "block";
+                input.nextElementSibling.nextElementSibling.style.display = "none";
+            } else {
+                input.classList.add("invalid");
+                input.classList.remove("valid");
+                input.nextElementSibling.style.display = "none";
+                input.nextElementSibling.nextElementSibling.style.display = "block";
+            }
+
+            return isValid;
+        }
+
+        inputs.forEach(input => {
+            input.addEventListener("input", () => validateInput(input));
+        });
+
+        form.addEventListener("submit", (e) => {
+            let allValid = true;
+            inputs.forEach(input => {
+                if (!validateInput(input)) allValid = false;
+            });
+
+            if (!allValid) e.preventDefault();
+        });
+    </script>
+
+</body>
+
+</html>
